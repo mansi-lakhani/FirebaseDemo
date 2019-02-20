@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="common_padding">5dip</dimen>
+    <dimen name="ic_size">20dp</dimen>
+    <dimen name="very_high_padding">20dip</dimen>
+    <dimen name="high_padding">10dip</dimen>
+</resources>
