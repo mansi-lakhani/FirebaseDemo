@@ -64,4 +64,18 @@
         android:layout_marginStart="40dp"
         />
 
+    <TextView
+        android:id="@+id/signout_button"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/login_text"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"
+        android:background="@drawable/button_shape"
+        android:gravity="center"
+        android:text="Sign out"
+        android:textColor="#ffffff"
+        android:textSize="20sp" />
+
 </LinearLayout>

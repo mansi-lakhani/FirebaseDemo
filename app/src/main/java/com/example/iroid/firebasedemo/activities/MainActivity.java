@@ -34,6 +34,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -50,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private Users users[];
     private ImageView profile;
     private EditText fullname;
-    private String email,password,phonenumber,name;
+    private String email,password,phonenumber,name,userToken;
     private TextInputEditText txtemail,txtphonenumber,txtpassword;
     private TextView signup,txtLogin;
     private String userid[];
@@ -61,52 +63,34 @@ public class MainActivity extends AppCompatActivity {
     private StorageReference storageReference;
     private DatabaseReference userDatabase;
     private RadioButton user,serviceProvider;
-    private DatabaseReference mRef1;
+    private DatabaseReference mRef1,mRef;
     private Uri path;
     private String DownloadUri;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSendData = findViewById(R.id.mSendData);
-        updateUser1 = findViewById(R.id.updateUser1);
-        deleteUser2 = findViewById(R.id.deleteUser2);
-        fullname = findViewById(R.id.fullname);
-        txtLogin = findViewById(R.id.login_text);
-        signup = findViewById(R.id.signup_button);
-        profile = findViewById(R.id.profile);
-        user = findViewById(R.id.radioUser);
-        serviceProvider = findViewById(R.id.radioServiceprovider);
-        txtemail = findViewById(R.id.txtemail);
 
-
-        txtphonenumber = findViewById(R.id.txtphonenumber);
-        txtpassword = findViewById(R.id.txtpassword);
-        //gets reference to database
-        mDatabase = FirebaseDatabase.getInstance().getReference();
-        mAuth = FirebaseAuth.getInstance();
-        firebaseAuth = FirebaseAuth.getInstance();
-        //creates node at top level named users
-        final DatabaseReference mRef = mDatabase.getDatabase().getReference("Users");
-        users = new Users[2];
-        userid = new String[2];
-        users[0] = new Users("Mansi","mansi@gmail.com","123456798",false,"","");
-        users[1] = new Users("User2","user2@gmail.com","123456798",false,"","");
+        findViews();
+        getDataBaseReferences();
 
         //create Notification channel
         createNotificationChannel();
 
-        FirebaseMessaging.getInstance().subscribeToTopic("general")
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        String msg = getString(R.string.msg_subscribed);
-                        if (!task.isSuccessful()) {
-                            msg = getString(R.string.msg_subscribe_failed);
+        //subscribe to notifications if he/she is sercice provider
+        if(serviceProvider.isChecked()) {
+            FirebaseMessaging.getInstance().subscribeToTopic("pushNotifications")
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            String msg = getString(R.string.msg_subscribed);
+                            if (!task.isSuccessful()) {
+                                msg = getString(R.string.msg_subscribe_failed);
+                            }
+                            Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
                         }
-                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
+                    });
+        }
 
         signup.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -197,10 +181,51 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void getDataBaseReferences() {
+        //gets reference to database
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mAuth = FirebaseAuth.getInstance();
+        firebaseAuth = FirebaseAuth.getInstance();
+        //creates node at top level named users
+        mRef = mDatabase.getDatabase().getReference("Users");
+    }
+
+    private void findViews() {
+        mSendData = findViewById(R.id.mSendData);
+        updateUser1 = findViewById(R.id.updateUser1);
+        deleteUser2 = findViewById(R.id.deleteUser2);
+        fullname = findViewById(R.id.fullname);
+        txtLogin = findViewById(R.id.login_text);
+        signup = findViewById(R.id.signup_button);
+        profile = findViewById(R.id.profile);
+        user = findViewById(R.id.radioUser);
+        serviceProvider = findViewById(R.id.radioServiceprovider);
+        txtemail = findViewById(R.id.txtemail);
+
+
+        txtphonenumber = findViewById(R.id.txtphonenumber);
+        txtpassword = findViewById(R.id.txtpassword);
+    }
+
+    private void generateToken() {
+        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+            @Override
+            public void onSuccess(InstanceIdResult instanceIdResult) {
+                userToken = instanceIdResult.getToken();
+                Log.e("Token generation succes",instanceIdResult.getToken());
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.e("Token generation failed",e.getMessage());
+            }
+        });
+    }
+
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             NotificationChannel notificationChannel =
-                    new NotificationChannel("FirebaseDemochannel","FirebaseDemochannel", NotificationManager.IMPORTANCE_DEFAULT);
+                    new NotificationChannel("pushNotifications","pushNotifications", NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(notificationChannel);
         }
@@ -285,11 +310,16 @@ public class MainActivity extends AppCompatActivity {
 
     //send data to database
     private void sendData(){
-        FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
-        userDatabase = FirebaseDatabase.getInstance().getReference("Users");
+        if (!serviceProvider.isChecked()) {
+            userDatabase = FirebaseDatabase.getInstance().getReference("Users");
+        }
+        else{
+            userDatabase = FirebaseDatabase.getInstance().getReference("Service Providers");
+        }
         mRef1 = userDatabase.child(Objects.requireNonNull(firebaseAuth.getUid()));
+//        generateToken();
         if (firebaseAuth.getUid()!=null) {
-            Users users = new Users(name,email,phonenumber,isUser,"",firebaseAuth.getUid());
+            Users users = new Users(name,email,phonenumber,"",firebaseAuth.getUid());
             mRef1.setValue(users).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
@@ -298,6 +328,7 @@ public class MainActivity extends AppCompatActivity {
                         mRef1.child("imageUrl").setValue(DownloadUri);
                         Toast.makeText(getApplicationContext(),"Imageul uploaded",Toast.LENGTH_SHORT).show();
                         firebaseAuth.signOut();
+                        startActivity(new Intent(MainActivity.this,LoginActivity.class));
                     }
                     else{
                         Toast.makeText(getApplicationContext(),"Imageul uploaded failed",Toast.LENGTH_SHORT).show();

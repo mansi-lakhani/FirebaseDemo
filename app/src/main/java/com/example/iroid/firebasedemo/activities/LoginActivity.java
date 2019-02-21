@@ -12,11 +12,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.iroid.firebasedemo.R;
+import com.example.iroid.firebasedemo.model.Users;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.auth.User;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -24,24 +31,28 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText txtemail,txtpassword;
     private FirebaseAuth firebaseAuth;
     private Boolean emailFlag;
+    private DatabaseReference databaseReferenceUser,databaseReferenceSP;
     private RadioButton radioUser,radioSP;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login2);
-        txtForgotPassword = findViewById(R.id.txtforgot_password);
-        txtemail = findViewById(R.id.txtemail);
-        txtpassword = findViewById(R.id.txtpassword);
-        login_button = findViewById(R.id.login_button);
-        radioUser = findViewById(R.id.radioUser);
-        radioSP = findViewById(R.id.radioServiceprovider);
+
+        findViews();
+
+
         firebaseAuth = FirebaseAuth.getInstance();
         //forgot password
 
-        if (FirebaseAuth.getInstance().getCurrentUser()!=null){
-            finish();
-            startActivity(new Intent(LoginActivity.this,ActivityLogin.class));
-        }
+//        if (FirebaseAuth.getInstance().getCurrentUser()!=null){
+//            finish();
+//            startActivity(new Intent(LoginActivity.this,ActivityLogin.class));
+//        }
+        initClick();
+
+    }
+
+    private void initClick() {
         txtForgotPassword.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -60,12 +71,67 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        getDatabaseReferences();
+        if (FirebaseAuth.getInstance().getCurrentUser()!=null){
+            final String id = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            databaseReferenceUser.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    for(DataSnapshot dataSnapshot1: dataSnapshot.getChildren()){
+                        Users user = dataSnapshot1.getValue(Users.class);
+                        if (user.userId.equals(id)){
+                            startActivity(new Intent(LoginActivity.this,Booking.class));
+                        }
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+            databaseReferenceSP.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    for(DataSnapshot dataSnapshot1 : dataSnapshot.getChildren()){
+                        Users serviceProvider = dataSnapshot1.getValue(Users.class);
+                        if (serviceProvider.userId.equals(id)){
+                            startActivity(new Intent(LoginActivity.this,ServiceProvider.class));
+                        }
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
+    }
+
+    private void getDatabaseReferences() {
+        databaseReferenceUser = FirebaseDatabase.getInstance().getReference("Users");
+        databaseReferenceSP = FirebaseDatabase.getInstance().getReference("Service Providers");
+    }
+
+    private void findViews() {
+        txtForgotPassword = findViewById(R.id.txtforgot_password);
+        txtemail = findViewById(R.id.txtemail);
+        txtpassword = findViewById(R.id.txtpassword);
+        login_button = findViewById(R.id.login_button);
+        radioUser = findViewById(R.id.radioUser);
+        radioSP = findViewById(R.id.radioServiceprovider);
+    }
+
     private void validateUser(String email, String password) {
         FirebaseUser user = firebaseAuth.getCurrentUser();
-        if (user!=null){
-            Toast.makeText(getApplicationContext(), "User already logged in", Toast.LENGTH_SHORT).show();
-        }
-        else {
+//        if (user!=null){
+//            Toast.makeText(getApplicationContext(), "User already logged in", Toast.LENGTH_SHORT).show();
+//        }
+//        else {
             final ProgressDialog progressDialog = new ProgressDialog(LoginActivity.this);
             progressDialog.setTitle("Logging in...");
             progressDialog.show();
@@ -77,9 +143,11 @@ public class LoginActivity extends AppCompatActivity {
                         if(checkemailVerification()){
                             finish();
                             if (radioUser.isChecked()) {
-                                startActivity(new Intent(LoginActivity.this, ActivityLogin.class));
+                                finish();
+                                startActivity(new Intent(LoginActivity.this, Booking.class));
                             }
                             else{
+                                finish();
                                 startActivity(new Intent(LoginActivity.this,ServiceProvider.class));
                             }
                         }
@@ -89,7 +157,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 }
             });
-        }
+//        }
     }
     //email verification
     private Boolean checkemailVerification(){

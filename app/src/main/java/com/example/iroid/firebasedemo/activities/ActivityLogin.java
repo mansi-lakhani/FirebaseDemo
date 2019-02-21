@@ -115,7 +115,7 @@ public class ActivityLogin extends AppCompatActivity {
                 String username = name.getText().toString();
                 String emailaddress = email.getText().toString();
                 String phone = phonenumber.getText().toString();
-                Users user = new Users(username,emailaddress,phone,true,"","");
+                Users user = new Users(username,emailaddress,phone,"","");
                 databaseReference.setValue(user);
             }
         });

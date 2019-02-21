@@ -2,7 +2,6 @@ package com.example.iroid.firebasedemo.model;
 
 public class Users {
     public String name,email,phonenumber,imageUrl,userId;
-    public Boolean isUser;
 
     public Users(){
 
@@ -16,11 +15,10 @@ public class Users {
         return imageUrl;
     }
 
-    public Users(String name, String email, String phonenumber, Boolean isUser, String imageUrl,String userId) {
+    public Users(String name, String email, String phonenumber, String imageUrl,String userId) {
         this.name = name;
         this.email = email;
         this.phonenumber = phonenumber;
-        this.isUser = isUser;
         this.imageUrl = imageUrl;
         this.userId = userId;
     }
@@ -36,15 +34,6 @@ public class Users {
     public String getName() {
             return name;
 
-    }
-
-    public void setUser(Boolean user) {
-        isUser = user;
-    }
-
-    public Boolean getUser() {
-
-        return isUser;
     }
 
     public String getEmail() {
